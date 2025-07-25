@@ -6,6 +6,7 @@ import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { useAuth } from "@/hooks/useAuth"
 
 const schema = z.object({
     email: z.string().email(),
@@ -13,6 +14,7 @@ const schema = z.object({
 })
 
 export function LoginForm() {
+    const { login } = useAuth()
     const [error, setError] = useState("")
     const {
         register,
@@ -23,6 +25,7 @@ export function LoginForm() {
     const onSubmit = async (data: any) => {
         try {
             const res = await axios.post("http://localhost:3000/auth/login", data)
+            login(res.data.access_token)
             console.log(res.data)
             localStorage.setItem("token", res.data.access_token)
             window.location.href = "/dashboard"
