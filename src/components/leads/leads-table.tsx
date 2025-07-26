@@ -13,6 +13,7 @@ import {
 import { LeadForm } from "./lead-form"
 import type { CreateLeadDto } from "@/types/lead"
 import { isAdmin, isAgent } from "@/lib/role-utils"
+import { LeadSearch } from "./lead-search"
 
 
 export default function LeadsTable() {
@@ -22,6 +23,9 @@ export default function LeadsTable() {
     const [selectedLead, setSelectedLead] = useState<Lead | null>(null)
     const [showDialog, setShowDialog] = useState(false)
     const { user } = useAuth()
+    const [searchTerm, setSearchTerm] = useState("")
+    const [filteredLeads, setFilteredLeads] = useState<Lead[]>(leads || [])
+
 
     {
         isAgent(user) && (
@@ -31,6 +35,7 @@ export default function LeadsTable() {
         )
     }
 
+    <LeadSearch searchTerm={searchTerm} setSearchTerm={setSearchTerm} />
 
     // 🔄 Load all leads from API
     const loadLeads = async () => {
@@ -105,6 +110,16 @@ export default function LeadsTable() {
         loadLeads()
     }, [])
 
+    useEffect(() => {
+        const term = searchTerm.toLowerCase()
+        const filtered = leads.filter(
+            (lead) =>
+                lead.name.toLowerCase().includes(term) ||
+                lead.email.toLowerCase().includes(term)
+        )
+        setFilteredLeads(filtered)
+    }, [searchTerm, leads])
+
     if (loading) return <p>Loading leads...</p>
 
     return (
@@ -142,7 +157,7 @@ export default function LeadsTable() {
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-gray-100">
-                            {leads.map((lead) => (
+                            {filteredLeads.map((lead) => (
                                 <tr key={lead.id}>
                                     <td className="px-4 py-2">{lead.name}</td>
                                     <td className="px-4 py-2">{lead.email}</td>
