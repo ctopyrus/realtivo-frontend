@@ -7,3 +7,7 @@ export interface Lead {
     createdAt: string
     updatedAt: string
 }
+
+export type CreateLeadDto = Omit<Lead, "id" | "status" | "createdAt" | "updatedAt"> & {
+    status?: string
+}

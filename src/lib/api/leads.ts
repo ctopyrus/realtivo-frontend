@@ -1,7 +1,22 @@
 import axios from "axios"
 import type { Lead } from "@/types/lead"
+import type { CreateLeadDto } from "@/types/lead"
 
 const API_URL = "http://localhost:3000"
+
+export async function createLead(token: string, data: CreateLeadDto) {
+    const res = await axios.post(`${API_URL}/leads`, data, {
+        headers: { Authorization: `Bearer ${token}` },
+    })
+    return res.data
+}
+
+export async function updateLead(token: string, id: string, data: CreateLeadDto) {
+    const res = await axios.put(`${API_URL}/leads/${id}`, data, {
+        headers: { Authorization: `Bearer ${token}` },
+    })
+    return res.data
+}
 
 export async function fetchLeads(token: string): Promise<Lead[]> {
     const res = await axios.get(`${API_URL}/leads`, {
