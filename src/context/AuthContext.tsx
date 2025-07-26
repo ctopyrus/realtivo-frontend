@@ -1,11 +1,19 @@
+"use client"
+
 import { createContext, useContext, useEffect, useState } from "react"
+import type { User } from "@/types/user"
 
 interface AuthContextType {
-    user: string | null
+    user: User | null
+    setUser: (user: User | null) => void
+    setToken: (token: string | null) => void
     token: string | null
-    login: (token: string) => void
+    login: (token: string, user: User) => void
     logout: () => void
 }
+
+export const AuthContext = createContext<AuthContextType | null>(null)
+
 export function useAuth() {
     const context = useContext(AuthContext)
     if (!context) {
@@ -13,28 +21,33 @@ export function useAuth() {
     }
     return context
 }
-export const AuthContext = createContext<AuthContextType | null>(null)
 
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     const [token, setToken] = useState<string | null>(null)
-    const [user, setUser] = useState<string | null>(null)
+    const [user, setUser] = useState<User | null>(null)
 
     useEffect(() => {
         const savedToken = localStorage.getItem("token")
         const savedUser = localStorage.getItem("user")
+
         if (savedToken) {
             setToken(savedToken)
         }
         if (savedUser) {
-            setUser(savedUser)
+            try {
+                setUser(JSON.parse(savedUser))
+            } catch (err) {
+                console.error("Error parsing saved user:", err)
+                setUser(null)
+            }
         }
     }, [])
 
-    const login = (newToken: string) => {
+    const login = (newToken: string, userInfo: User) => {
         setToken(newToken)
-        setUser("logged-in")
+        setUser(userInfo)
         localStorage.setItem("token", newToken)
-        localStorage.setItem("user", "logged-in")
+        localStorage.setItem("user", JSON.stringify(userInfo))
     }
 
     const logout = () => {
@@ -46,7 +59,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     }
 
     return (
-        <AuthContext.Provider value={{ token, user, login, logout }}>
+        <AuthContext.Provider value={{ token, user, setUser, setToken, login, logout }}>
             {children}
         </AuthContext.Provider>
     )
