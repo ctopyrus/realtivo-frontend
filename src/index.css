@@ -1,4 +1,7 @@
 @layer theme, base, components, utilities;
+@import "tailwindcss";
+@import "tw-animate-css";
+
 
 :root {
   font-family: system-ui, Avenir, Helvetica, Arial, sans-serif;

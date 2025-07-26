@@ -2,6 +2,7 @@ import { useEffect, useState } from "react"
 import type { Lead } from "@/types/lead"
 import { fetchLeads, deleteLead, createLead, updateLead } from "@/lib/api/leads"
 import { useAuth } from "@/hooks/useAuth"
+import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
 import {
     Dialog,
@@ -55,12 +56,15 @@ export default function LeadsTable() {
         try {
             if (selectedLead) {
                 await updateLead(token!, selectedLead.id, formData)
+                toast.success("Lead updated successfully")
             } else {
                 await createLead(token!, formData)
+                toast.success("Lead added successfully")
             }
             await loadLeads()
             closeDialog()
         } catch (error) {
+            toast.error("Failed to save lead")
             console.error("Failed to submit lead", error)
         }
     }
@@ -71,7 +75,9 @@ export default function LeadsTable() {
             try {
                 await deleteLead(token!, id)
                 setLeads((prev) => prev.filter((lead) => lead.id !== id))
+                toast.success("Lead deleted successfully")
             } catch (error) {
+                toast.error("Failed to delete lead")
                 console.error("Failed to delete lead", error)
             }
         }
