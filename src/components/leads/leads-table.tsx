@@ -12,6 +12,8 @@ import {
 } from "@/components/ui/dialog"
 import { LeadForm } from "./lead-form"
 import type { CreateLeadDto } from "@/types/lead"
+import { isAdmin, isAgent } from "@/lib/role-utils"
+
 
 export default function LeadsTable() {
     const { token } = useAuth()
@@ -19,6 +21,16 @@ export default function LeadsTable() {
     const [loading, setLoading] = useState(true)
     const [selectedLead, setSelectedLead] = useState<Lead | null>(null)
     const [showDialog, setShowDialog] = useState(false)
+    const { user } = useAuth()
+
+    {
+        isAgent(user) && (
+            <div className="text-sm text-muted-foreground mb-2">
+                🔒 Read-only mode — you can only view leads.
+            </div>
+        )
+    }
+
 
     // 🔄 Load all leads from API
     const loadLeads = async () => {
@@ -37,6 +49,12 @@ export default function LeadsTable() {
     const openAddDialog = () => {
         setSelectedLead(null)
         setShowDialog(true)
+    }
+
+    {
+        isAdmin(user) && (
+            <Button onClick={openAddDialog}>Add Lead</Button>
+        )
     }
 
     // ✏️ Open "Edit Lead" Modal
@@ -141,6 +159,14 @@ export default function LeadsTable() {
                                         >
                                             Delete
                                         </Button>
+
+                                        {isAdmin(user) && (
+                                            <div className="flex gap-2">
+                                                <Button onClick={() => openEditDialog(lead)}>Edit</Button>
+                                                <Button variant="destructive" onClick={() => handleDelete(lead.id)}>Delete</Button>
+                                            </div>
+                                        )}
+
                                     </td>
                                 </tr>
                             ))}
