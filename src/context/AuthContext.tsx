@@ -6,7 +6,13 @@ interface AuthContextType {
     login: (token: string) => void
     logout: () => void
 }
-
+export function useAuth() {
+    const context = useContext(AuthContext)
+    if (!context) {
+        throw new Error("useAuth must be used within AuthProvider")
+    }
+    return context
+}
 export const AuthContext = createContext<AuthContextType | null>(null)
 
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
