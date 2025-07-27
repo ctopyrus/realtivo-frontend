@@ -26,6 +26,7 @@ export default function LeadsTable() {
     const [filteredLeads, setFilteredLeads] = useState<Lead[]>([])
     const [currentPage, setCurrentPage] = useState(1)
     const leadsPerPage = 10
+    const [followUpFilter, setFollowUpFilter] = useState("all")
 
     // Load leads from API
     const loadLeads = async () => {
@@ -69,11 +70,43 @@ export default function LeadsTable() {
         setCurrentPage(1)
     }, [statusFilter, searchTerm, leads])
 
+    // Filter leads by follow-up filter
+    const filteredByFollowUpLeads = filteredLeads.filter((lead) => {
+        const now = new Date()
+        const today = new Date(now.getFullYear(), now.getMonth(), now.getDate())
+        const nextWeek = new Date(today)
+        nextWeek.setDate(today.getDate() + 7)
+
+        if (!lead.followUpDate) {
+            return followUpFilter === "none" || followUpFilter === "all"
+        }
+
+        const date = new Date(lead.followUpDate)
+
+        switch (followUpFilter) {
+            case "overdue":
+                return date < today
+            case "today":
+                return date.toDateString() === today.toDateString()
+            case "thisWeek":
+                return date >= today && date <= nextWeek
+            default:
+                return true
+        }
+    })
+
+    // Sort leads by followUpDate ascending
+    const sortedLeads = [...filteredByFollowUpLeads].sort((a, b) => {
+        const aDate = a.followUpDate ? new Date(a.followUpDate).getTime() : Infinity
+        const bDate = b.followUpDate ? new Date(b.followUpDate).getTime() : Infinity
+        return aDate - bDate
+    })
+
     // Pagination values
-    const totalPages = Math.ceil(filteredLeads.length / leadsPerPage) || 1
+    const totalPages = Math.ceil(sortedLeads.length / leadsPerPage) || 1
     const indexOfLastLead = currentPage * leadsPerPage
     const indexOfFirstLead = indexOfLastLead - leadsPerPage
-    const currentLeads = filteredLeads.slice(indexOfFirstLead, indexOfLastLead)
+    const currentLeads = sortedLeads.slice(indexOfFirstLead, indexOfLastLead)
 
     // Open add lead modal
     const openAddDialog = () => {
@@ -171,8 +204,24 @@ export default function LeadsTable() {
                 ))}
             </div>
 
+            {/* Filter dropdown */}
+            <div className="flex justify-between items-center mb-4">
+                <h2 className="text-xl font-semibold">All Leads</h2>
+                <select
+                    value={followUpFilter}
+                    onChange={(e) => setFollowUpFilter(e.target.value)}
+                    className="border border-gray-300 rounded px-2 py-1 text-sm"
+                >
+                    <option value="all">All</option>
+                    <option value="overdue">Overdue</option>
+                    <option value="today">Follow-Up Today</option>
+                    <option value="thisWeek">This Week</option>
+                    <option value="none">No Follow-Up Date</option>
+                </select>
+            </div>
+
             {/* Leads table or no leads message */}
-            {filteredLeads.length === 0 ? (
+            {sortedLeads.length === 0 ? (
                 <p>No leads found.</p>
             ) : (
                 <>
@@ -198,14 +247,14 @@ export default function LeadsTable() {
                                         <td className="px-4 py-2">
                                             <span
                                                 className={`px-2 py-1 text-xs rounded-full font-semibold ${lead.status === "Hot"
-                                                        ? "bg-red-100 text-red-800"
-                                                        : lead.status === "Warm"
-                                                            ? "bg-yellow-100 text-yellow-800"
-                                                            : lead.status === "Cold"
-                                                                ? "bg-blue-100 text-blue-800"
-                                                                : lead.status === "Closed"
-                                                                    ? "bg-green-100 text-green-800"
-                                                                    : ""
+                                                    ? "bg-red-100 text-red-800"
+                                                    : lead.status === "Warm"
+                                                        ? "bg-yellow-100 text-yellow-800"
+                                                        : lead.status === "Cold"
+                                                            ? "bg-blue-100 text-blue-800"
+                                                            : lead.status === "Closed"
+                                                                ? "bg-green-100 text-green-800"
+                                                                : ""
                                                     }`}
                                             >
                                                 {lead.status}
