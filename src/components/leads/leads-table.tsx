@@ -16,6 +16,7 @@ import { isAdmin, isAgent } from "@/lib/role-utils"
 import { LeadSearch } from "./lead-search"
 
 export default function LeadsTable() {
+    const [statusFilter, setStatusFilter] = useState<string | null>(null)
     const { token, user } = useAuth()
     const [leads, setLeads] = useState<Lead[]>([])
     const [loading, setLoading] = useState(true)
@@ -26,7 +27,7 @@ export default function LeadsTable() {
     const [currentPage, setCurrentPage] = useState(1)
     const leadsPerPage = 10
 
-    // Load leads
+    // Load leads from API
     const loadLeads = async () => {
         setLoading(true)
         try {
@@ -40,28 +41,39 @@ export default function LeadsTable() {
         }
     }
 
-    // On mount: load leads
+    // Load leads on mount
     useEffect(() => {
         loadLeads()
     }, [])
 
-    // Filter leads based on searchTerm
+    // Apply search and status filtering
     useEffect(() => {
-        const term = searchTerm.toLowerCase()
-        const filtered = leads.filter(
-            (lead) =>
-                lead.name.toLowerCase().includes(term) ||
-                lead.email.toLowerCase().includes(term)
-        )
+        let filtered = leads
+
+        // Filter by status if selected
+        if (statusFilter) {
+            filtered = filtered.filter((lead) => lead.status === statusFilter)
+        }
+
+        // Filter by search term
+        const term = searchTerm.trim().toLowerCase()
+        if (term) {
+            filtered = filtered.filter(
+                (lead) =>
+                    lead.name.toLowerCase().includes(term) ||
+                    lead.email.toLowerCase().includes(term)
+            )
+        }
+
         setFilteredLeads(filtered)
         setCurrentPage(1)
-    }, [searchTerm, leads])
+    }, [statusFilter, searchTerm, leads])
 
-    // Pagination
+    // Pagination values
+    const totalPages = Math.ceil(filteredLeads.length / leadsPerPage) || 1
     const indexOfLastLead = currentPage * leadsPerPage
     const indexOfFirstLead = indexOfLastLead - leadsPerPage
     const currentLeads = filteredLeads.slice(indexOfFirstLead, indexOfLastLead)
-    const totalPages = Math.ceil(filteredLeads.length / leadsPerPage)
 
     // Open add lead modal
     const openAddDialog = () => {
@@ -75,12 +87,13 @@ export default function LeadsTable() {
         setShowDialog(true)
     }
 
+    // Close modal
     const closeDialog = () => {
         setSelectedLead(null)
         setShowDialog(false)
     }
 
-    // Handle create or update lead
+    // Handle form submit - create or update lead
     const handleFormSubmit = async (formData: CreateLeadDto) => {
         try {
             if (!token) throw new Error("No auth token")
@@ -99,7 +112,7 @@ export default function LeadsTable() {
         }
     }
 
-    // Delete lead
+    // Delete a lead
     const handleDelete = async (id: string) => {
         if (confirm("Are you sure you want to delete this lead?")) {
             try {
@@ -135,7 +148,31 @@ export default function LeadsTable() {
             {/* Search */}
             <LeadSearch searchTerm={searchTerm} setSearchTerm={setSearchTerm} />
 
-            {leads.length === 0 ? (
+            {/* Status filter buttons */}
+            <div className="flex gap-2 mb-4">
+                {["All", "Hot", "Warm", "Cold", "Closed"].map((status) => (
+                    <button
+                        key={status}
+                        onClick={() => setStatusFilter(status === "All" ? null : status)}
+                        className={`px-3 py-1 rounded-full text-sm font-medium border transition
+                            ${statusFilter === status ||
+                                (status === "All" && statusFilter === null)
+                                ? "bg-black text-white"
+                                : "bg-gray-100 text-gray-800 hover:bg-gray-200"
+                            }
+                        `}
+                    >
+                        {status === "Hot" && "🔥 "}
+                        {status === "Warm" && "🌤️ "}
+                        {status === "Cold" && "❄️ "}
+                        {status === "Closed" && "✅ "}
+                        {status}
+                    </button>
+                ))}
+            </div>
+
+            {/* Leads table or no leads message */}
+            {filteredLeads.length === 0 ? (
                 <p>No leads found.</p>
             ) : (
                 <>
@@ -147,7 +184,9 @@ export default function LeadsTable() {
                                     <th className="px-4 py-2 text-left">Email</th>
                                     <th className="px-4 py-2 text-left">Phone</th>
                                     <th className="px-4 py-2 text-left">Status</th>
-                                    {isAdmin(user) && <th className="px-4 py-2 text-left">Actions</th>}
+                                    {isAdmin(user) && (
+                                        <th className="px-4 py-2 text-left">Actions</th>
+                                    )}
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-gray-100">
@@ -159,14 +198,14 @@ export default function LeadsTable() {
                                         <td className="px-4 py-2">
                                             <span
                                                 className={`px-2 py-1 text-xs rounded-full font-semibold ${lead.status === "Hot"
-                                                    ? "bg-red-100 text-red-800"
-                                                    : lead.status === "Warm"
-                                                        ? "bg-yellow-100 text-yellow-800"
-                                                        : lead.status === "Cold"
-                                                            ? "bg-blue-100 text-blue-800"
-                                                            : lead.status === "Closed"
-                                                                ? "bg-green-100 text-green-800"
-                                                                : ""
+                                                        ? "bg-red-100 text-red-800"
+                                                        : lead.status === "Warm"
+                                                            ? "bg-yellow-100 text-yellow-800"
+                                                            : lead.status === "Cold"
+                                                                ? "bg-blue-100 text-blue-800"
+                                                                : lead.status === "Closed"
+                                                                    ? "bg-green-100 text-green-800"
+                                                                    : ""
                                                     }`}
                                             >
                                                 {lead.status}
@@ -174,7 +213,10 @@ export default function LeadsTable() {
                                         </td>
                                         {isAdmin(user) && (
                                             <td className="px-4 py-2 space-x-2">
-                                                <Button size="sm" onClick={() => openEditDialog(lead)}>
+                                                <Button
+                                                    size="sm"
+                                                    onClick={() => openEditDialog(lead)}
+                                                >
                                                     Edit
                                                 </Button>
                                                 <Button
@@ -203,14 +245,16 @@ export default function LeadsTable() {
                         </button>
 
                         <span className="text-sm text-gray-600">
-                            Page {currentPage} of {totalPages || 1}
+                            Page {currentPage} of {totalPages}
                         </span>
 
                         <button
                             onClick={() =>
-                                setCurrentPage((prev) => Math.min(prev + 1, totalPages || 1))
+                                setCurrentPage((prev) =>
+                                    Math.min(prev + 1, totalPages)
+                                )
                             }
-                            disabled={currentPage === totalPages || totalPages === 0}
+                            disabled={currentPage === totalPages}
                             className="px-4 py-2 bg-gray-200 rounded disabled:opacity-50"
                         >
                             Next
@@ -223,7 +267,9 @@ export default function LeadsTable() {
             <Dialog open={showDialog} onOpenChange={setShowDialog}>
                 <DialogContent>
                     <DialogHeader>
-                        <DialogTitle>{selectedLead ? "Edit Lead" : "Add Lead"}</DialogTitle>
+                        <DialogTitle>
+                            {selectedLead ? "Edit Lead" : "Add Lead"}
+                        </DialogTitle>
                     </DialogHeader>
                     <LeadForm
                         defaultValues={selectedLead || undefined}
