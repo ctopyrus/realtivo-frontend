@@ -6,6 +6,7 @@ export interface Lead {
     status: string
     createdAt: string
     updatedAt: string
+    followUpDate?: string
 }
 
 export type CreateLeadDto = Omit<Lead, "id" | "status" | "createdAt" | "updatedAt"> & {

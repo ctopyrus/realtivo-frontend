@@ -7,11 +7,14 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { useAuth } from "@/hooks/useAuth"
+import type { SubmitHandler } from "react-hook-form"
 
 const schema = z.object({
     email: z.string().email(),
     password: z.string().min(6),
 })
+
+type LoginFormInputs = z.infer<typeof schema>
 
 export function LoginForm() {
     const { login } = useAuth()
@@ -20,13 +23,16 @@ export function LoginForm() {
         register,
         handleSubmit,
         formState: { errors }
-    } = useForm({ resolver: zodResolver(schema) })
+    } = useForm<LoginFormInputs>({
+        resolver: zodResolver(schema)
+    })
 
-    const onSubmit = async (data: any) => {
+    const onSubmit: SubmitHandler<LoginFormInputs> = async (data) => {
         try {
             const res = await axios.post("http://localhost:3000/auth/login", data)
-            login(res.data.access_token)
-            console.log(res.data)
+            // Assuming res.data contains user info and access_token
+            const user = res.data.user || {} // adjust based on your API response
+            login(res.data.access_token, user)
             localStorage.setItem("token", res.data.access_token)
             window.location.href = "/dashboard"
         } catch (err: any) {
@@ -39,12 +45,12 @@ export function LoginForm() {
             <div>
                 <Label>Email</Label>
                 <Input {...register("email")} type="email" />
-                {errors.email && <p className="text-red-500 text-sm">{errors.email.message as string}</p>}
+                {errors.email && <p className="text-red-500 text-sm">{errors.email.message}</p>}
             </div>
             <div>
                 <Label>Password</Label>
                 <Input {...register("password")} type="password" />
-                {errors.password && <p className="text-red-500 text-sm">{errors.password.message as string}</p>}
+                {errors.password && <p className="text-red-500 text-sm">{errors.password.message}</p>}
             </div>
             {error && <p className="text-red-500 text-sm">{error}</p>}
             <Button type="submit" className="w-full">Login</Button>
