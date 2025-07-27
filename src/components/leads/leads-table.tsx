@@ -25,7 +25,8 @@ export default function LeadsTable() {
     const { user } = useAuth()
     const [searchTerm, setSearchTerm] = useState("")
     const [filteredLeads, setFilteredLeads] = useState<Lead[]>(leads || [])
-
+    const [currentPage, setCurrentPage] = useState(1)
+    const leadsPerPage = 10
 
     {
         isAgent(user) && (
@@ -110,6 +111,12 @@ export default function LeadsTable() {
         loadLeads()
     }, [])
 
+    const indexOfLastLead = currentPage * leadsPerPage
+    const indexOfFirstLead = indexOfLastLead - leadsPerPage
+    const currentLeads = filteredLeads.slice(indexOfFirstLead, indexOfLastLead)
+    const totalPages = Math.ceil(filteredLeads.length / leadsPerPage)
+
+
     useEffect(() => {
         const term = searchTerm.toLowerCase()
         const filtered = leads.filter(
@@ -118,6 +125,7 @@ export default function LeadsTable() {
                 lead.email.toLowerCase().includes(term)
         )
         setFilteredLeads(filtered)
+        setCurrentPage(1)
     }, [searchTerm, leads])
 
     if (loading) return <p>Loading leads...</p>
@@ -157,7 +165,7 @@ export default function LeadsTable() {
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-gray-100">
-                            {filteredLeads.map((lead) => (
+                            {currentLeads.map((lead) => (
                                 <tr key={lead.id}>
                                     <td className="px-4 py-2">{lead.name}</td>
                                     <td className="px-4 py-2">{lead.email}</td>
@@ -174,6 +182,29 @@ export default function LeadsTable() {
                                         >
                                             Delete
                                         </Button>
+                                        <div className="flex items-center justify-between mt-4">
+                                            <button
+                                                onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
+                                                disabled={currentPage === 1}
+                                                className="px-4 py-2 bg-gray-200 rounded disabled:opacity-50"
+                                            >
+                                                Previous
+                                            </button>
+
+                                            <span className="text-sm text-gray-600">
+                                                Page {currentPage} of {totalPages}
+                                            </span>
+
+                                            <button
+                                                onClick={() =>
+                                                    setCurrentPage((prev) => Math.min(prev + 1, totalPages))
+                                                }
+                                                disabled={currentPage === totalPages}
+                                                className="px-4 py-2 bg-gray-200 rounded disabled:opacity-50"
+                                            >
+                                                Next
+                                            </button>
+                                        </div>
 
                                         {isAdmin(user) && (
                                             <div className="flex gap-2">
