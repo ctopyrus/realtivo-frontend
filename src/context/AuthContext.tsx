@@ -1,66 +1,85 @@
 "use client"
 
 import { createContext, useContext, useEffect, useState } from "react"
-import type { User } from "@/types/user"
+import type { ReactNode } from "react"
+import { useRouter } from "next/navigation"
+import { jwtDecode } from "jwt-decode"
+
+interface User {
+    id: string
+    name: string
+    email: string
+    // add other user fields as needed
+}
 
 interface AuthContextType {
+    isAuthenticated: boolean
     user: User | null
-    setUser: (user: User | null) => void
-    setToken: (token: string | null) => void
-    token: string | null
-    login: (token: string, user: User) => void
+    loading: boolean
+    login: (token: string) => void
     logout: () => void
 }
 
-export const AuthContext = createContext<AuthContextType | null>(null)
+const AuthContext = createContext<AuthContextType>({
+    isAuthenticated: false,
+    user: null,
+    loading: true,
+    login: () => { },
+    logout: () => { },
+})
 
-export function useAuth() {
-    const context = useContext(AuthContext)
-    if (!context) {
-        throw new Error("useAuth must be used within AuthProvider")
-    }
-    return context
-}
-
-export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
-    const [token, setToken] = useState<string | null>(null)
+export const AuthProvider = ({ children }: { children: ReactNode }) => {
     const [user, setUser] = useState<User | null>(null)
+    const [isAuthenticated, setIsAuthenticated] = useState(false)
+    const [loading, setLoading] = useState(true)
+    const router = useRouter()
 
     useEffect(() => {
-        const savedToken = localStorage.getItem("token")
-        const savedUser = localStorage.getItem("user")
-
-        if (savedToken) {
-            setToken(savedToken)
-        }
-        if (savedUser) {
+        const token = localStorage.getItem("realtivo_token")
+        if (token) {
             try {
-                setUser(JSON.parse(savedUser))
+                const decoded = jwtDecode<User>(token)
+                setUser(decoded)
+                setIsAuthenticated(true)
             } catch (err) {
-                console.error("Error parsing saved user:", err)
-                setUser(null)
+                console.error("Invalid token:", err)
+                logout()
             }
         }
+        setLoading(false)
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [])
 
-    const login = (newToken: string, userInfo: User) => {
-        setToken(newToken)
-        setUser(userInfo)
-        localStorage.setItem("token", newToken)
-        localStorage.setItem("user", JSON.stringify(userInfo))
+    const login = (token: string) => {
+        localStorage.setItem("realtivo_token", token)
+        try {
+            const decoded = jwtDecode<User>(token)
+            setUser(decoded)
+            setIsAuthenticated(true)
+        } catch (err) {
+            console.error("Invalid token on login:", err)
+            logout()
+        }
     }
 
     const logout = () => {
-        setToken(null)
+        localStorage.removeItem("realtivo_token")
         setUser(null)
-        localStorage.removeItem("token")
-        localStorage.removeItem("user")
-        window.location.href = "/login"
+        setIsAuthenticated(false)
+        router.push("/login")
     }
 
     return (
-        <AuthContext.Provider value={{ token, user, setUser, setToken, login, logout }}>
+        <AuthContext.Provider value={{ isAuthenticated, user, loading, login, logout }}>
             {children}
         </AuthContext.Provider>
     )
+}
+
+export const useAuth = () => {
+    const context = useContext(AuthContext)
+    if (!context) {
+        throw new Error("useAuth must be used within an AuthProvider")
+    }
+    return context
 }
