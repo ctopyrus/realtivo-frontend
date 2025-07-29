@@ -34,3 +34,16 @@ export async function deleteLead(token: string, id: string) {
         },
     })
 }
+
+export async function fetchAllTags() {
+    const res = await fetch("/api/tags")
+    if (!res.ok) throw new Error("Failed to fetch tags")
+    return res.json()
+}
+
+export async function removeTagFromLead(leadId: string, tagId: string) {
+    const res = await fetch(`/api/leads/${leadId}/tags/${tagId}`, {
+        method: "DELETE"
+    })
+    if (!res.ok) throw new Error("Failed to remove tag")
+}

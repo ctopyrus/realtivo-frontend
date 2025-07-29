@@ -26,7 +26,8 @@ export default function LeadsTable() {
     const [filteredLeads, setFilteredLeads] = useState<Lead[]>([])
     const [currentPage, setCurrentPage] = useState(1)
     const leadsPerPage = 10
-    const [followUpFilter, setFollowUpFilter] = useState("all")
+    const [followUpFilter, setFollowUpFilter] = useState<"all" | "overdue" | "today" | "thisWeek" | "none">("all")
+    const [searchQuery, setSearchQuery] = useState("")
 
     // Load leads from API
     const loadLeads = async () => {
@@ -37,6 +38,7 @@ export default function LeadsTable() {
             setLeads(data)
         } catch (error) {
             console.error("Failed to load leads", error)
+            toast.error("Failed to load leads")
         } finally {
             setLoading(false)
         }
@@ -62,7 +64,8 @@ export default function LeadsTable() {
             filtered = filtered.filter(
                 (lead) =>
                     lead.name.toLowerCase().includes(term) ||
-                    lead.email.toLowerCase().includes(term)
+                    lead.email.toLowerCase().includes(term) ||
+                    lead.phone.toLowerCase().includes(term)
             )
         }
 
@@ -103,7 +106,7 @@ export default function LeadsTable() {
     })
 
     // Pagination values
-    const totalPages = Math.ceil(sortedLeads.length / leadsPerPage) || 1
+    const totalPages = Math.max(Math.ceil(sortedLeads.length / leadsPerPage), 1)
     const indexOfLastLead = currentPage * leadsPerPage
     const indexOfFirstLead = indexOfLastLead - leadsPerPage
     const currentLeads = sortedLeads.slice(indexOfFirstLead, indexOfLastLead)
@@ -173,9 +176,7 @@ export default function LeadsTable() {
 
             <div className="flex justify-between items-center mb-2">
                 <h2 className="text-lg font-semibold">Leads</h2>
-                {isAdmin(user) && (
-                    <Button onClick={openAddDialog}>Add Lead</Button>
-                )}
+                {isAdmin(user) && <Button onClick={openAddDialog}>Add Lead</Button>}
             </div>
 
             {/* Search */}
@@ -188,8 +189,7 @@ export default function LeadsTable() {
                         key={status}
                         onClick={() => setStatusFilter(status === "All" ? null : status)}
                         className={`px-3 py-1 rounded-full text-sm font-medium border transition
-                            ${statusFilter === status ||
-                                (status === "All" && statusFilter === null)
+                            ${statusFilter === status || (status === "All" && statusFilter === null)
                                 ? "bg-black text-white"
                                 : "bg-gray-100 text-gray-800 hover:bg-gray-200"
                             }
@@ -209,7 +209,7 @@ export default function LeadsTable() {
                 <h2 className="text-xl font-semibold">All Leads</h2>
                 <select
                     value={followUpFilter}
-                    onChange={(e) => setFollowUpFilter(e.target.value)}
+                    onChange={(e) => setFollowUpFilter(e.target.value as typeof followUpFilter)}
                     className="border border-gray-300 rounded px-2 py-1 text-sm"
                 >
                     <option value="all">All</option>
@@ -219,6 +219,15 @@ export default function LeadsTable() {
                     <option value="none">No Follow-Up Date</option>
                 </select>
             </div>
+
+            {/* Search by name, email, or phone */}
+            <input
+                type="text"
+                placeholder="Search by name, email, or phone"
+                className="w-full max-w-md px-3 py-2 border rounded-md mb-4 shadow-sm"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+            />
 
             {/* Leads table or no leads message */}
             {sortedLeads.length === 0 ? (
@@ -233,52 +242,56 @@ export default function LeadsTable() {
                                     <th className="px-4 py-2 text-left">Email</th>
                                     <th className="px-4 py-2 text-left">Phone</th>
                                     <th className="px-4 py-2 text-left">Status</th>
-                                    {isAdmin(user) && (
-                                        <th className="px-4 py-2 text-left">Actions</th>
-                                    )}
+                                    {isAdmin(user) && <th className="px-4 py-2 text-left">Actions</th>}
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-gray-100">
-                                {currentLeads.map((lead) => (
-                                    <tr key={lead.id}>
-                                        <td className="px-4 py-2">{lead.name}</td>
-                                        <td className="px-4 py-2">{lead.email}</td>
-                                        <td className="px-4 py-2">{lead.phone}</td>
-                                        <td className="px-4 py-2">
-                                            <span
-                                                className={`px-2 py-1 text-xs rounded-full font-semibold ${lead.status === "Hot"
-                                                    ? "bg-red-100 text-red-800"
-                                                    : lead.status === "Warm"
-                                                        ? "bg-yellow-100 text-yellow-800"
-                                                        : lead.status === "Cold"
-                                                            ? "bg-blue-100 text-blue-800"
-                                                            : lead.status === "Closed"
-                                                                ? "bg-green-100 text-green-800"
-                                                                : ""
-                                                    }`}
-                                            >
-                                                {lead.status}
-                                            </span>
-                                        </td>
-                                        {isAdmin(user) && (
-                                            <td className="px-4 py-2 space-x-2">
-                                                <Button
-                                                    size="sm"
-                                                    onClick={() => openEditDialog(lead)}
+                                {currentLeads
+                                    .filter((lead) => {
+                                        const q = searchQuery.toLowerCase()
+                                        return (
+                                            lead.name.toLowerCase().includes(q) ||
+                                            lead.email.toLowerCase().includes(q) ||
+                                            lead.phone.toLowerCase().includes(q)
+                                        )
+                                    })
+                                    .map((lead) => (
+                                        <tr key={lead.id}>
+                                            <td className="px-4 py-2">{lead.name}</td>
+                                            <td className="px-4 py-2">{lead.email}</td>
+                                            <td className="px-4 py-2">{lead.phone}</td>
+                                            <td className="px-4 py-2">
+                                                <span
+                                                    className={`px-2 py-1 text-xs rounded-full font-semibold ${lead.status === "Hot"
+                                                        ? "bg-red-100 text-red-800"
+                                                        : lead.status === "Warm"
+                                                            ? "bg-yellow-100 text-yellow-800"
+                                                            : lead.status === "Cold"
+                                                                ? "bg-blue-100 text-blue-800"
+                                                                : lead.status === "Closed"
+                                                                    ? "bg-green-100 text-green-800"
+                                                                    : ""
+                                                        }`}
                                                 >
-                                                    Edit
-                                                </Button>
-                                                <Button
-                                                    variant="destructive"
-                                                    size="sm"
-                                                    onClick={() => handleDelete(lead.id)}
-                                                >
-                                                    Delete
-                                                </Button>
+                                                    {lead.status}
+                                                </span>
                                             </td>
-                                        )}
-                                    </tr>
-                                ))}
+                                            {isAdmin(user) && (
+                                                <td className="px-4 py-2 space-x-2">
+                                                    <Button size="sm" onClick={() => openEditDialog(lead)}>
+                                                        Edit
+                                                    </Button>
+                                                    <Button
+                                                        variant="destructive"
+                                                        size="sm"
+                                                        onClick={() => handleDelete(lead.id)}
+                                                    >
+                                                        Delete
+                                                    </Button>
+                                                </td>
+                                            )}
+                                        </tr>
+                                    ))}
                             </tbody>
                         </table>
                     </div>
@@ -299,9 +312,7 @@ export default function LeadsTable() {
 
                         <button
                             onClick={() =>
-                                setCurrentPage((prev) =>
-                                    Math.min(prev + 1, totalPages)
-                                )
+                                setCurrentPage((prev) => Math.min(prev + 1, totalPages))
                             }
                             disabled={currentPage === totalPages}
                             className="px-4 py-2 bg-gray-200 rounded disabled:opacity-50"
@@ -316,9 +327,7 @@ export default function LeadsTable() {
             <Dialog open={showDialog} onOpenChange={setShowDialog}>
                 <DialogContent>
                     <DialogHeader>
-                        <DialogTitle>
-                            {selectedLead ? "Edit Lead" : "Add Lead"}
-                        </DialogTitle>
+                        <DialogTitle>{selectedLead ? "Edit Lead" : "Add Lead"}</DialogTitle>
                     </DialogHeader>
                     <LeadForm
                         defaultValues={selectedLead || undefined}
