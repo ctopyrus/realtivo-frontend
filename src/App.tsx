@@ -3,7 +3,7 @@ import reactLogo from './assets/react.svg'
 import viteLogo from '/vite.svg'
 import './App.css'
 import { Button } from './components/ui/button'
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
+import { Routes, Route, Navigate } from 'react-router-dom'
 
 import LoginPage from "@/pages/login"
 import RegisterPage from "@/pages/register"
@@ -11,11 +11,14 @@ import DashboardPage from "@/pages/dashboard"
 
 import { AuthProvider } from "@/context/AuthContext"
 import { ProtectedRoute } from "@/components/layout/ProtectedRoute"
+import { Toaster } from './components/ui/toaster'
+
 
 function App() {
   const [count, setCount] = useState(0)
   return (
     <AuthProvider>
+      <Toaster />
       <>
         <div>
           <a href="https://vite.dev" target="_blank" rel="noopener noreferrer">
@@ -38,14 +41,14 @@ function App() {
           </p>
         </div>
 
-        <BrowserRouter>
-          <Routes>
-            <Route path="/" element={<Navigate to="/login" />} />
-            <Route path="/login" element={<LoginPage />} />
-            <Route path="/register" element={<RegisterPage />} />
-            <Route path="/dashboard" element={<ProtectedRoute><DashboardPage /></ProtectedRoute>} />
-          </Routes>
-        </BrowserRouter>
+
+        <Routes>
+          <Route path="/" element={<Navigate to="/login" />} />
+          <Route path="/login" element={<LoginPage />} />
+          <Route path="/register" element={<RegisterPage />} />
+          <Route path="/dashboard" element={<ProtectedRoute><DashboardPage /></ProtectedRoute>} />
+        </Routes>
+
 
         <p className="read-the-docs">
           Click on the Vite and React logos to learn more
