@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useState, type Key } from "react"
 import { useRouter } from "next/navigation"
 import { Card, CardContent } from "@/components/ui/card"
 import axios from "axios"
@@ -85,6 +85,8 @@ export default function ProtectedDashboardPage() {
             lead.phone?.toLowerCase().includes(q)
         )
     })
+
+    const recentLeads = leads.slice(-5).reverse() //updated recent leads
 
     if (loading) {
         return <p className="text-center py-10">Loading dashboard...</p>
@@ -172,7 +174,7 @@ export default function ProtectedDashboardPage() {
                                 </tr>
                             </thead>
                             <tbody>
-                                {filteredLeads.map((lead) => (
+                                {(search ? filteredLeads : recentLeads).map((lead: { id: Key | null | undefined; name: any; fullName: any; email: any; phone: any; status: any }) => (
                                     <tr key={lead.id} className="border-t">
                                         <td className="py-2">{lead.name || lead.fullName || "—"}</td>
                                         <td className="py-2">{lead.email || "—"}</td>
